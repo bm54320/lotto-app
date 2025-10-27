@@ -1,0 +1,46 @@
+<%- include('layout') %>
+
+    <div class="card">
+      <h2>🎫 Uplata listića</h2>
+      <form method="post" action="/tickets" enctype="application/x-www-form-urlencoded">
+        <div class="form-group">
+          <label for="documentId">🆔 Broj osobne iskaznice ili putovnice (max 20 znakova):</label>
+          <input type="text" id="documentId" name="documentId" maxlength="20" required 
+                 placeholder="npr. 12345678901">
+        </div>
+        
+        <div class="form-group">
+          <label for="numbers">🎲 Brojevi (6-10 brojeva, 1-45, odvojeni zarezom):</label>
+          <input type="text" id="numbers" name="numbers" required 
+                 placeholder="1,2,3,4,5,6" pattern="^(\d+,\s*){5,9}\d+$">
+          <small>Unesite 6 do 10 brojeva u rasponu 1-45, odvojene zarezom</small>
+        </div>
+        
+        <button type="submit" class="btn-primary">💳 Uplati listić</button>
+      </form>
+    </div>
+
+    <div class="card rules-card">
+      <h3>📋 Pravila igre</h3>
+      <ul>
+        <li>✅ Unesite 6 do 10 brojeva u rasponu od 1 do 45</li>
+        <li>✅ Brojevi moraju biti odvojeni zarezom</li>
+        <li>❌ Nisu dozvoljeni duplikati</li>
+        <li>🆔 Broj osobne iskaznice ili putovnice je obavezan (max 20 znakova)</li>
+        <li>🎯 Nakon uplate dobit ćete QR kod za praćenje listića</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>💡 Savjeti</h3>
+      <ul>
+        <li>Brojevi se unose odvojeni zarezom: <code>1,2,3,4,5,6</code></li>
+        <li>Možete unijeti između 6 i 10 brojeva</li>
+        <li>Svaki broj mora biti između 1 i 45</li>
+        <li>Nakon uplate ćete dobiti QR kod koji možete spremiti</li>
+      </ul>
+    </div>
+
+  </main>
+</body>
+</html>

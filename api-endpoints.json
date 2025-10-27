@@ -1,0 +1,410 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Loto 6/45 API",
+    "version": "1.0.0",
+    "description": "API za upravljanje loto igrom 6/45 s OAuth2 autentifikacijom preko Auth0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Lokalni development server"
+    },
+    {
+      "url": "https://adresu.u.oblaku/app",
+      "description": "Production server (Render)"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Početna stranica",
+        "description": "Prikazuje status kola, broj listića, izvučene brojeve i informacije o korisniku",
+        "responses": {
+          "200": {
+            "description": "HTML stranica s podacima o trenutnom kolu"
+          }
+        },
+        "tags": ["Javne stranice"]
+      }
+    },
+    "/ticket/{code}": {
+      "get": {
+        "summary": "Javna stranica listića",
+        "description": "Prikazuje podatke o listiću i izvučene brojeve (bez autentifikacije)",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID kod listića"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "HTML stranica s podacima o listiću"
+          },
+          "404": {
+            "description": "Listić nije pronađen"
+          }
+        },
+        "tags": ["Javne stranice"]
+      }
+    },
+    "/pay": {
+      "get": {
+        "summary": "Stranica za uplatu listića",
+        "description": "Prikazuje formu za uplatu listića (zahtijeva prijavu)",
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "HTML forma za uplatu"
+          },
+          "302": {
+            "description": "Preusmjeravanje na login stranicu"
+          }
+        },
+        "tags": ["Korisnički endpointi"]
+      }
+    },
+    "/tickets": {
+      "post": {
+        "summary": "Uplata listića",
+        "description": "Kreira novi listić i vraća QR kod s javnim URL-om",
+        "security": [
+          {
+            "oidc": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "documentId": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "description": "Broj osobne iskaznice ili putovnice"
+                  },
+                  "numbers": {
+                    "type": "string",
+                    "pattern": "^(\\d+,\\s*){5,9}\\d+$",
+                    "description": "6-10 brojeva odvojenih zarezom (raspon 1-45)"
+                  }
+                },
+                "required": ["documentId", "numbers"]
+              },
+              "example": {
+                "documentId": "12345678901",
+                "numbers": "1,2,3,4,5,6"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "QR kod (PNG slika)",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validacijska greška",
+            "content": {
+              "text/plain": {
+                "examples": {
+                  "inactive": {
+                    "value": "Uplate nisu aktivne."
+                  },
+                  "minNumbers": {
+                    "value": "Minimalno 6 brojeva je potrebno."
+                  },
+                  "maxNumbers": {
+                    "value": "Maksimalno 10 brojeva je dozvoljeno."
+                  },
+                  "duplicates": {
+                    "value": "Duplikati među brojevima nisu dozvoljeni."
+                  },
+                  "range": {
+                    "value": "Brojevi moraju biti u rasponu 1–45."
+                  },
+                  "documentId": {
+                    "value": "Broj osobne iskaznice ili putovnice ne smije biti duži od 20 znakova."
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Korisnik nije prijavljen",
+            "content": {
+              "text/plain": {
+                "example": "Prijava je obavezna."
+              }
+            }
+          }
+        },
+        "tags": ["Korisnički endpointi"]
+      }
+    },
+    "/new-round": {
+      "post": {
+        "summary": "Aktiviraj novo kolo",
+        "description": "Kreira novo aktivno kolo za uplate listića",
+        "security": [
+          {
+            "m2m": ["manage:rounds"]
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Novo kolo aktivirano (ili već postoji aktivno kolo)"
+          },
+          "401": {
+            "description": "Nema autorizacijskog tokena"
+          },
+          "403": {
+            "description": "Nedovoljan scope"
+          }
+        },
+        "tags": ["M2M API"]
+      }
+    },
+    "/close": {
+      "post": {
+        "summary": "Deaktiviraj trenutno kolo",
+        "description": "Zatvara trenutno aktivno kolo i onemogućava uplate",
+        "security": [
+          {
+            "m2m": ["manage:rounds"]
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Kolo zatvoreno (ili je već bilo zatvoreno)"
+          },
+          "401": {
+            "description": "Nema autorizacijskog tokena"
+          },
+          "403": {
+            "description": "Nedovoljan scope"
+          }
+        },
+        "tags": ["M2M API"]
+      }
+    },
+    "/store-results": {
+      "post": {
+        "summary": "Spremi izvučene brojeve",
+        "description": "Pohranjuje izvučene brojeve za zatvoreno kolo",
+        "security": [
+          {
+            "m2m": ["manage:rounds"]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "numbers": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 45
+                    },
+                    "description": "Polje izvučenih brojeva"
+                  }
+                },
+                "required": ["numbers"]
+              },
+              "example": {
+                "numbers": [1, 2, 3, 4, 5, 6]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Brojevi uspješno pohranjeni"
+          },
+          "400": {
+            "description": "Greška pri pohranjivanju",
+            "content": {
+              "text/plain": {
+                "examples": {
+                  "invalidState": {
+                    "value": "Brojevi se ne mogu pohraniti u ovom stanju."
+                  },
+                  "invalidType": {
+                    "value": "numbers mora biti polje brojeva."
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nema autorizacijskog tokena"
+          },
+          "403": {
+            "description": "Nedovoljan scope"
+          }
+        },
+        "tags": ["M2M API"]
+      }
+    },
+    "/login": {
+      "get": {
+        "summary": "Prijava korisnika",
+        "description": "Preusmjerava na Auth0 login stranicu",
+        "responses": {
+          "302": {
+            "description": "Preusmjeravanje na Auth0"
+          }
+        },
+        "tags": ["Autentifikacija"]
+      }
+    },
+    "/logout": {
+      "get": {
+        "summary": "Odjava korisnika",
+        "description": "Odjavljuje korisnika i briše sesiju",
+        "responses": {
+          "302": {
+            "description": "Preusmjeravanje na početnu stranicu"
+          }
+        },
+        "tags": ["Autentifikacija"]
+      }
+    },
+    "/callback": {
+      "get": {
+        "summary": "Auth0 callback",
+        "description": "Callback endpoint za Auth0 autentifikaciju",
+        "responses": {
+          "302": {
+            "description": "Preusmjeravanje nakon uspješne prijave"
+          }
+        },
+        "tags": ["Autentifikacija"]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "oidc": {
+        "type": "openIdConnect",
+        "openIdConnectUrl": "https://{AUTH0_DOMAIN}/.well-known/openid-configuration",
+        "description": "Auth0 OpenID Connect za korisnike"
+      },
+      "m2m": {
+        "type": "oauth2",
+        "flows": {
+          "clientCredentials": {
+            "tokenUrl": "https://{AUTH0_DOMAIN}/oauth/token",
+            "scopes": {
+              "manage:rounds": "Upravljanje kolima (new-round, close, store-results)"
+            }
+          }
+        },
+        "description": "Auth0 Client Credentials za M2M komunikaciju"
+      }
+    },
+    "schemas": {
+      "Ticket": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Jedinstveni ID listića"
+          },
+          "code": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID v4 kod listića"
+          },
+          "documentId": {
+            "type": "string",
+            "maxLength": 20,
+            "description": "Broj osobne iskaznice ili putovnice"
+          },
+          "numbers": {
+            "type": "string",
+            "description": "JSON array brojeva"
+          },
+          "roundId": {
+            "type": "integer",
+            "description": "ID kola kojem listić pripada"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Vrijeme kreiranja listića"
+          }
+        }
+      },
+      "Round": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Jedinstveni ID kola"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["ACTIVE", "CLOSED"],
+            "description": "Status kola"
+          },
+          "drawnNumbers": {
+            "type": "string",
+            "description": "JSON array izvučenih brojeva"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Vrijeme kreiranja kola"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Javne stranice",
+      "description": "Stranice dostupne bez autentifikacije"
+    },
+    {
+      "name": "Korisnički endpointi",
+      "description": "Endpointi koji zahtijevaju OIDC autentifikaciju"
+    },
+    {
+      "name": "M2M API",
+      "description": "Machine-to-Machine API s OAuth2 Client Credentials"
+    },
+    {
+      "name": "Autentifikacija",
+      "description": "Auth0 login/logout endpointi"
+    }
+  ]
+}
+
+
+

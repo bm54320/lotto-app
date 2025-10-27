@@ -1,0 +1,71 @@
+<%- include('layout', { isAuthenticated: false, user: null }) %>
+
+    <div class="card ticket-info">
+      <h2>🎫 Listić</h2>
+      <div style="margin-bottom: 1rem;">
+        <p><strong>🆔 Kod:</strong> <code style="background: #f8f9fa; padding: 0.25rem 0.5rem; border-radius: 4px; font-family: monospace;"><%= ticket.code %></code></p>
+        <p><strong>📄 Dokument:</strong> <%= ticket.documentId %></p>
+        <p><strong>📅 Datum uplate:</strong> <%= new Date(ticket.createdAt).toLocaleString('hr-HR') %></p>
+      </div>
+      
+      <h3>🎲 Vaši brojevi:</h3>
+      <div class="numbers">
+        <% ticket.numbers.forEach(n => { %>
+          <span class="ball"><%= n %></span>
+        <% }) %>
+      </div>
+    </div>
+
+    <div class="card drawn-numbers">
+      <h2>🎯 Izvučeni brojevi za ovo kolo</h2>
+      <% if (ticket.round.drawnNumbers && ticket.round.drawnNumbers.length) { %>
+        <div class="numbers">
+          <% ticket.round.drawnNumbers.forEach(n => { %>
+            <span class="ball"><%= n %></span>
+          <% }) %>
+        </div>
+        
+        <!-- Check for matches -->
+        <% 
+          const userNumbers = ticket.numbers;
+          const drawnNumbers = ticket.round.drawnNumbers;
+          const matches = userNumbers.filter(num => drawnNumbers.includes(num));
+        %>
+        
+        <% if (matches.length > 0) { %>
+        <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(39, 174, 96, 0.1); border-radius: 8px; border-left: 4px solid #27ae60;">
+          <h3 style="color: #27ae60; margin-top: 0;">🎉 Pogodci!</h3>
+          <p><strong>Pogodili ste <%= matches.length %> broj/a:</strong></p>
+          <div class="numbers">
+            <% matches.forEach(n => { %>
+              <span class="ball" style="background: linear-gradient(135deg, #27ae60, #2ecc71);"><%= n %></span>
+            <% }) %>
+          </div>
+        </div>
+        <% } else { %>
+        <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(231, 76, 60, 0.1); border-radius: 8px; border-left: 4px solid #e74c3c;">
+          <p style="color: #e74c3c; margin: 0;">😔 Nema pogodaka u ovom kolu.</p>
+        </div>
+        <% } %>
+      <% } else { %>
+        <p style="text-align: center; color: #7f8c8d; font-style: italic;">
+          Još nisu objavljeni izvučeni brojevi za ovo kolo.
+        </p>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <h3>ℹ️ Informacije</h3>
+      <p>Ovaj listić je generiran automatski nakon uplate. QR kod sadrži link na ovu stranicu za praćenje rezultata.</p>
+      <p><strong>Kolo:</strong> #<%= ticket.round.id %></p>
+      <p><strong>Status kola:</strong> 
+        <span class="status-badge <%= ticket.round.status === 'ACTIVE' ? 'status-active' : 'status-inactive' %>">
+          <%= ticket.round.status === 'ACTIVE' ? 'AKTIVNO' : 'ZATVORENO' %>
+        </span>
+      </p>
+    </div>
+
+  </main>
+</body>
+</html>
+

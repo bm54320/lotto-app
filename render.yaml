@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: loto-645
+    env: node
+    plan: free
+    buildCommand: npm ci && npx prisma generate && npm run build
+    startCommand: node dist/server.js
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase: 
+          name: loto-db
+          property: connectionString
+      - key: AUTH0_SECRET
+        sync: false
+      - key: AUTH0_BASE_URL
+        value: https://loto-645.onrender.com
+      - key: AUTH0_ISSUER_BASE_URL
+        value: https://dev-xxxxx.us.auth0.com
+      - key: AUTH0_CLIENT_ID
+        sync: false
+      - key: AUTH0_AUDIENCE
+        value: https://loto-api
+      - key: M2M_REQUIRED_SCOPE
+        value: loto:manage
+      - key: BASE_URL
+        value: https://loto-645.onrender.com
+      - key: JWKS_CACHE
+        value: "true"
+    healthCheckPath: /
+
+databases:
+  - name: loto-db
+    plan: free
+
